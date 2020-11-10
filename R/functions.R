@@ -15,7 +15,7 @@
 #'
 
 get_national_squads <- function(n){
-  #fifa_ranking <- "https://www.transfermarkt.us/wettbewerbe/fifa/wettbewerbe?plus="
+  # fifa_ranking <- "https://www.transfermarkt.us/wettbewerbe/fifa/wettbewerbe?plus="
   #no fancy details (top url doesnt always work)
   fifa_ranking <- "https://www.transfermarkt.us/wettbewerbe/fifa?page="
   nations <- xml2::read_html(paste0(fifa_ranking,n))

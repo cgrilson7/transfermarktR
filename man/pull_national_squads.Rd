@@ -5,7 +5,11 @@
 \title{Get National Squads Function
 This function pulls all national squads. Currently only pulling data from 2010 to 2019.}
 \usage{
-pull_national_squads()
+pull_national_squads(
+  min_year = 2000,
+  max_year = 2020,
+  national_squads_depth = 9
+)
 }
 \description{
 This function outputs a dataframe with players per year per squad with url needed for
