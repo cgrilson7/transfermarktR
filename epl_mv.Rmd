@@ -1,0 +1,176 @@
+---
+title: "EPL MV"
+author: "Colin G. Wilson"
+date: "11/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(transfermarktR)
+library(lubridate)
+load("data/data.rda")
+```
+
+```{r}
+contracts <- mv_data %>%
+  group_by(name) %>%
+  mutate(
+    contract_start = contract_date,
+    contract_end = lag(contract_date, 1L, order_by = desc(contract_date)) - days(1)
+         ) %>%
+  mutate(
+    contract_end = coalesce(contract_end, Sys.Date() + 1e5)
+  ) %>%
+  ungroup()
+```
+
+```{r}
+cpfc_mv <- contracts %>%
+  filter(club %in% c("Crystal Palace", "Crystal Palace U23")) %>%
+  full_join(
+    tibble(
+      szn = 1992:2020,
+      szn_text = paste0(szn, "-", szn + 1),
+      szn_start = as.Date(paste0(szn, "-08-01")
+      # szn_start = as.Date(
+      #   c(
+      #     "1992-08-15",
+      #     "1993-08-14",
+      #     "1994-08-20",
+      #     "1995-08-19",
+      #     "1996-08-17",
+      #     "1997-08-09",
+      #     "1998-08-15",
+      #     "1999-08-07",
+      #     "2000-08-19",
+      #   )
+      )
+      ),
+    by = character()
+  ) %>%
+  filter(szn_start > contract_start,
+         szn_start < contract_end)
+```
+
+```{r}
+cpfc_mv %>%
+  group_by(szn) %>%
+  summarize(total_mv = sum(mv, na.rm = T))
+```
+
+```{r}
+cpfc_mv %>%
+  filter(szn > 2012) %>%
+  group_by(szn, age) %>%
+  summarize(mv = sum(mv), .groups = 'drop') %>%
+  ggplot(aes(x = age, y = mv)) + 
+  geom_col() +
+  facet_grid(rows = vars(szn))
+
+```
+```{r}
+lfc_mv <- contracts %>%
+  filter(club == "Liverpool FC") %>%
+  full_join(
+    tibble(
+      szn = 1992:2020,
+      szn_text = paste0(szn, "-", szn + 1),
+      szn_start = as.Date(paste0(szn, "-08-01")
+      # szn_start = as.Date(
+      #   c(
+      #     "1992-08-15",
+      #     "1993-08-14",
+      #     "1994-08-20",
+      #     "1995-08-19",
+      #     "1996-08-17",
+      #     "1997-08-09",
+      #     "1998-08-15",
+      #     "1999-08-07",
+      #     "2000-08-19",
+      #   )
+      )
+      ),
+    by = character()
+  ) %>%
+  filter(szn_start > contract_start,
+         szn_start < contract_end)
+```
+
+
+```{r}
+lfc_mv %>%
+  filter(szn > 2016) %>%
+  group_by(szn, age) %>%
+  summarize(mv = sum(mv), .groups = 'drop') %>%
+  ggplot(aes(x = age, y = mv)) + 
+  geom_col() +
+  facet_grid(rows = vars(szn))
+
+```
+
+```{r}
+contracts %>%
+  filter(club %in% c("Liverpool FC", "Crystal Palace", "Brighton  x26 Hove Albion")) %>%
+  full_join(
+    tibble(
+      szn = 1992:2020,
+      szn_text = paste0(szn, "-", szn + 1),
+      szn_start = as.Date(paste0(szn, "-08-01")
+      # szn_start = as.Date(
+      #   c(
+      #     "1992-08-15",
+      #     "1993-08-14",
+      #     "1994-08-20",
+      #     "1995-08-19",
+      #     "1996-08-17",
+      #     "1997-08-09",
+      #     "1998-08-15",
+      #     "1999-08-07",
+      #     "2000-08-19",
+      #   )
+      )
+      ),
+    by = character()
+  ) %>%
+  filter(szn_start > contract_start,
+         szn_start < contract_end) %>%
+  filter(szn > 2016) %>%
+  group_by(club, szn, age) %>%
+  summarize(mv = sum(mv), .groups = 'drop') %>%
+  ggplot(aes(x = age, y = mv)) + 
+  geom_col() +
+  facet_grid(cols = vars(club), rows = vars(szn))
+
+```
+
+```{r}
+contracts %>%
+  full_join(
+    tibble(
+      szn = 1992:2020,
+      szn_text = paste0(szn, "-", szn + 1),
+      szn_start = as.Date(paste0(szn, "-08-01")
+      )
+      ),
+    by = character()
+  ) %>%
+  filter(szn_start > contract_start,
+         szn_start < contract_end) %>%
+  group_by(citizenship, szn, age) %>%
+  summarize(mv = sum(mv), .groups = 'drop') %>%
+  filter(
+    citizenship %in% c(
+      "United States",
+      "Mexico",
+      "Costa Rica",
+      "Jamaica"
+    ),
+    szn > 2012
+  ) %>%
+  ggplot(aes(x = age, y = mv)) + 
+    geom_col() +
+    facet_grid(cols = vars(citizenship), rows = vars(szn))
+
+
+```

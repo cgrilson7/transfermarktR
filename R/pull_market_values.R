@@ -19,7 +19,7 @@ pull_national_squads <-
       purrr::map_df(seq(1:national_squads_depth), get_national_squads) %>%
       unique()
     temp_squad_year <- national_squads %>%
-      tidyr::expand(nation, c(min_year:max_year)) %>% dplyr::rename(year = `c(2000:2020)`) %>%
+      tidyr::expand(nation, c(min_year:max_year)) %>% dplyr::rename(year = `c(min_year:max_year)`) %>%
       dplyr::left_join(national_squads, by = c('nation'))
     #nat_squads_year<-purrr::map2_dfr(temp_squad_year %>% dplyr::pull(url), temp_squad_year %>% dplyr::pull(year), get_squad_list)
     future::plan(future::multisession(workers = availableCores()))
@@ -29,7 +29,8 @@ pull_national_squads <-
         temp_squad_year %>% dplyr::pull(year),
         get_squad_list,
         .progress = TRUE
-      )
+      ) %>%
+      tibble::as_tibble()
 
 
     return(nat_squads_year)
@@ -52,7 +53,6 @@ get_all_player_mv <- function() {
     dplyr::select(name, url) %>%
     dplyr::distinct()
 
-  future::plan(future::multiprocess)
   future::plan(future::multisession(workers = availableCores()))
   squad_mv_df <- furrr::future_map2_dfr(
     unique_player %>%

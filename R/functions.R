@@ -7,7 +7,7 @@
 #' Get National Squads Function
 #'
 #' This function pulls data for all national squads
-#' @param num_of_page
+#' @param n depth of FIFA rankings (page number)
 #' @keywords none
 #' @export
 #' @examples
@@ -74,11 +74,137 @@ get_national_squads <- function(n){
 
 }
 
+#' Get National Squads Plus U-2X
+#'
+#' This function pulls data for all national squads plus their U-23, -21, etc squads
+#' @param years saison_id=years
+#' @keywords none
+#' @importFrom rvest html_nodes html_text html_attr
+#' @importFrom tibble tibble
+#' @importFrom dplyr bind_cols
+#' @export
+#' @examples
+#' get_all_squad_pages
+#'
+
+get_all_squad_pages <- function(years = 2000:2020){
+
+  squads_url <- "https://www.transfermarkt.us/international-friendlies/startseite/wettbewerb/FS/plus/?saison_id="
+
+  purrr::map(years, function(x){
+    squads_html <- xml2::read_html(paste0(squads_url,x))
+    purrr::map(c(".odd", ".even"), function(xx){
+      links <- squads_html %>%
+        rvest::html_nodes(xx) %>%
+        rvest::html_nodes('.hauptlink') %>%
+        rvest::html_nodes('a')
+      tibble(
+        squad_id = rvest::html_attr(links, 'id'),
+        squad_name = rvest::html_text(links),
+        link_rel = rvest::html_attr(links, 'href')
+      )
+    }) %>%
+      bind_rows() %>%
+      filter(!is.na(squad_id),
+             grepl('startseite/verein', link_rel)
+             ) %>%
+      distinct_all() %>%
+      mutate(year = x)
+  }) %>%
+    bind_rows() %>%
+    distinct_all()
+
+}
+
+
+#' Get player data from national squad page
+#'
+#' This function pulls data for all national squads plus their U-23, -21, etc squads
+#' @param link_rel The relative location of the squad page. www.transfermarkt.us/{link_rel}
+#' @keywords none
+#' @importFrom rvest  html_nodes html_text html_attr
+#' @importFrom tibble tibble
+#' @importFrom dplyr bind_cols
+#' @export
+#' @examples
+#' get_mv_from_squad_page
+#'
+
+get_mv_from_squad_page <- function(link_rel){
+
+  link_full <- paste0("https://www.transfermarkt.us", link_rel)
+  squad_html <- xml2::read_html(link_full)
+  squad_table <- squad_html %>%
+    html_node('table.items')
+
+  player_name_nodes <- html_nodes(squad_table,'.spielprofil_tooltip')
+  player_names <- html_text(player_name_nodes)
+  player_name_full <- player_names[c(T,F)]
+  player_name_init <- player_names[c(F,T)]
+  player_id <- html_attr(player_name_nodes, 'id')[c(T,F)]
+  player_page <- html_attr(player_name_nodes, 'href')[c(T,F)]
+
+  player_img_nodes <-  html_nodes(squad_table, '.bilderrahmen-fixed')
+  player_img_title <- html_attr(player_img_nodes, 'title')
+  player_img_alt <- html_attr(player_img_nodes, 'alt')
+  player_img_src <- html_attr(player_img_nodes, 'data-src')
+  player_img_original <- html_attr(player_img_nodes, 'data-original')
+
+  player_pos <- squad_table %>%
+    html_nodes('.inline-table tr+ tr td') %>%
+    html_text()
+
+  player_age <- squad_table %>%
+    html_nodes('.posrela+ .zentriert') %>%
+    html_text()
+
+  mv_nodes <- squad_table %>%
+    html_nodes('.rechts.hauptlink')
+  mv <- mv_nodes %>% html_text()
+
+  player_tbl <-
+    tibble(
+      player_id, player_name_full, player_name_init, player_page,
+      player_pos,
+      player_img_src, player_img_original, player_img_alt, player_img_title,
+      player_age,
+      mv
+    )
+
+  club_nodes <- squad_table %>%
+    html_nodes('.zentriert+ td.zentriert')
+
+  club_exists <- (html_text(club_nodes) == "")
+
+  club_tt_nodes <- club_nodes %>%
+    html_nodes('.vereinprofil_tooltip')
+
+  club_id <- html_attr(club_tt_nodes, 'id')
+  club_page <- html_attr(club_tt_nodes, 'href')
+
+  club_img_nodes <- club_tt_nodes %>%
+    html_nodes('img')
+
+  club_img_src <- html_attr(club_img_nodes, 'src')
+  club_name <- html_attr(club_img_nodes, 'alt')
+
+  club_tbl <- tibble(club_exists, club_name = NA_character_, club_id = NA_character_, club_page = NA_character_, club_img_src = NA_character_)
+
+  club_tbl$club_name[club_tbl$club_exists] <- club_name
+  club_tbl$club_id[club_tbl$club_exists] <- club_id
+  club_tbl$club_page[club_tbl$club_exists] <- club_page
+  club_tbl$club_img_src[club_tbl$club_exists] <- club_img_src
+
+  bind_cols(player_tbl, club_tbl)
+
+}
+
 
 #' Get Squad Players in List
 #'
 #' This function pulls data for all national squads
-#' @param team_url year_ofsquad
+#' @param url nat squad url
+#' @param year specific year
 #' @keywords none
 #' @export
 #' @examples
@@ -154,7 +280,8 @@ get_squad_list <-function(url, year){
 
 #' Get Historic Market Value for Player
 #' This function pulls data for all national squads
-#' @params url_of_player, name
+#' @param url player url
+#' @param name player name
 #' @keywords none
 #' @examples
 #' get_player_historic_market_value()
@@ -174,13 +301,13 @@ get_player_historic_market_value <- function(url,name){
   test <- mv_url %>%
     rvest::html_nodes('script') %>%
     length()
-  test<-ifelse(test<=42,1,0)
+  test<-ifelse(test <= 42, 1, 0)
 
 
   if(test==1){
-    print('Test ==1')
+    print('Test == 1')
     print(test)
-    return(data.frame(contract_date = NA, mv = NA, age = NA,club = NA,dob = NA,citizenship = NA, position = NA, name = name))
+    return(data.frame(contract_date = NA, mv = NA, age = NA, club = NA, dob = NA, citizenship = NA, position = NA, name = name))
   }
 
   t<-mv_url %>%

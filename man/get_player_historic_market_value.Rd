@@ -7,6 +7,11 @@ This function pulls data for all national squads}
 \usage{
 get_player_historic_market_value(url, name)
 }
+\arguments{
+\item{url}{player url}
+
+\item{name}{player name}
+}
 \description{
 Get Historic Market Value for Player
 This function pulls data for all national squads

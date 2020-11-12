@@ -7,7 +7,9 @@
 get_squad_list(url, year)
 }
 \arguments{
-\item{team_url}{year_ofsquad}
+\item{url}{nat squad url}
+
+\item{year}{specific year}
 }
 \description{
 This function pulls data for all national squads

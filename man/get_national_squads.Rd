@@ -6,6 +6,9 @@
 \usage{
 get_national_squads(n)
 }
+\arguments{
+\item{n}{depth of FIFA rankings (page number)}
+}
 \description{
 This function pulls data for all national squads
 }
